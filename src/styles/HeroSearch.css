@@ -1,0 +1,146 @@
+/* Hero секция */
+.hero {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  padding: 80px 20px;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: 700;
+  text-align: center;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  text-align: center;
+  color: #64748b;
+  max-width: 700px;
+  margin: 0 auto 3rem;
+}
+
+/* Търсачка */
+.search-container {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.search-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.search-field {
+  grid-column: span 2;
+}
+
+.search-field-small {
+  grid-column: span 1;
+}
+
+.search-btn-container {
+  display: flex;
+  align-items: flex-end;
+}
+
+.search-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #4b5563;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.search-select {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-family: inherit;
+  background-color: white;
+  transition: border-color 0.3s;
+}
+
+.search-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-btn {
+  width: 100%;
+  background-color: #2563eb;
+  color: white;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background-color 0.3s;
+}
+
+.search-btn:hover {
+  background-color: #1d4ed8;
+}
+
+/* Допълнителни филтри */
+.search-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: center;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #4b5563;
+}
+
+.filter-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 2px solid #d1d5db;
+  cursor: pointer;
+}
+
+.advanced-search {
+  color: #2563eb;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+.advanced-search:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 1024px) {
+  .search-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .search-field, .search-field-small {
+    grid-column: span 1;
+  }
+  
+  .hero-title {
+    font-size: 2.5rem;
+  }
+}

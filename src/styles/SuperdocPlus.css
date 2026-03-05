@@ -1,0 +1,193 @@
+/* Секция Superdoc Plus */
+.plus-section {
+  padding: 80px 20px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #4f46e5 100%);
+  color: white;
+}
+
+.plus-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.plus-title {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.plus-subtitle {
+  font-size: 1.25rem;
+  opacity: 0.9;
+  max-width: 800px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Съдържание */
+.plus-content {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+/* Ползи */
+.benefits-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  padding: 2.5rem;
+  border-radius: 20px;
+}
+
+.benefits-title {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+}
+
+.benefits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.benefit-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.125rem;
+}
+
+.benefit-icon {
+  color: #fbbf24;
+  font-size: 1.25rem;
+}
+
+.benefit-text {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.benefit-note {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 1.5rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+}
+
+.benefit-note strong {
+  color: white;
+}
+
+/* Планове */
+.plans-container {
+  grid-column: span 2;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.plan-card {
+  background-color: white;
+  padding: 2.5rem;
+  border-radius: 20px;
+  color: #1e293b;
+  position: relative;
+}
+
+.plan-card.popular {
+  border: 4px solid #fbbf24;
+  transform: translateY(-10px);
+}
+
+.popular-badge {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #fbbf24;
+  color: #1e293b;
+  padding: 8px 24px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+}
+
+.plan-name {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.plan-price {
+  font-size: 3.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.plan-period {
+  color: #64748b;
+  font-size: 1.125rem;
+}
+
+.plan-features {
+  margin: 2rem 0;
+}
+
+.plan-feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+  color: #4b5563;
+}
+
+.feature-icon-check {
+  color: #10b981;
+  font-size: 1.125rem;
+}
+
+.plan-button {
+  width: 100%;
+  padding: 1.25rem;
+  border-radius: 12px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  transition: all 0.3s;
+}
+
+.plan-button.popular {
+  background-color: #2563eb;
+  color: white;
+}
+
+.plan-button.popular:hover {
+  background-color: #1d4ed8;
+}
+
+.plan-button.standard {
+  background-color: #e5e7eb;
+  color: #4b5563;
+}
+
+.plan-button.standard:hover {
+  background-color: #d1d5db;
+}
+
+@media (max-width: 1024px) {
+  .plus-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .plans-container {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .plans-container {
+    grid-template-columns: 1fr;
+  }
+}

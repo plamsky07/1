@@ -1,0 +1,100 @@
+.specialties-page {
+  background: #f9fafb;
+  padding: 48px 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* HEADER */
+.specialties-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.specialties-header h1 {
+  font-size: 36px;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 12px;
+}
+
+.specialties-header p {
+  font-size: 18px;
+  color: #6b7280;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* GRID */
+.specialties-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+/* CARD */
+.specialty-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.specialty-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.08);
+}
+
+.specialty-icon {
+  font-size: 40px;
+  margin-bottom: 16px;
+}
+
+.specialty-card h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 10px;
+}
+
+.specialty-description {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #4b5563;
+  margin-bottom: 20px;
+}
+
+/* FOOTER */
+.specialty-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.doctors-count {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.view-doctors-btn {
+  background: #2563eb;
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.view-doctors-btn:hover {
+  background: #1d4ed8;
+}

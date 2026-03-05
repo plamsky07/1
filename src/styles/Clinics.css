@@ -1,0 +1,128 @@
+.clinics-page {
+  background: #f9fafb;
+  padding: 48px 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* HEADER */
+.clinics-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.clinics-header h1 {
+  font-size: 36px;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 12px;
+}
+
+.clinics-header p {
+  font-size: 18px;
+  color: #6b7280;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* GRID */
+.clinics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+/* CARD */
+.clinic-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.clinic-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* TOP */
+.clinic-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.clinic-top h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.clinic-city {
+  background: #e0e7ff;
+  color: #3730a3;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+/* ADDRESS */
+.clinic-address {
+  font-size: 14px;
+  color: #4b5563;
+  margin-bottom: 14px;
+}
+
+/* SPECIALTIES */
+.clinic-specialties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.specialty-badge {
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+/* FOOTER */
+.clinic-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.doctors-count {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.view-doctors-btn {
+  background: #2563eb;
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.view-doctors-btn:hover {
+  background: #1d4ed8;
+}

@@ -1,0 +1,133 @@
+/* Footer стилове */
+.footer {
+  background-color: #111827;
+  color: white;
+  padding-top: 80px;
+  padding-bottom: 40px;
+}
+
+.footer-content {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3rem;
+  margin-bottom: 3rem;
+}
+
+.footer-logo {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #60a5fa;
+  margin-bottom: 1.5rem;
+}
+
+.footer-description {
+  color: #9ca3af;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.social-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.social-link {
+  color: #9ca3af;
+  font-size: 1.25rem;
+  transition: color 0.3s;
+}
+
+.social-link:hover {
+  color: white;
+}
+
+.footer-column h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #f3f4f6;
+  margin-bottom: 1.5rem;
+}
+
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footer-link {
+  color: #9ca3af;
+  transition: color 0.3s;
+}
+
+.footer-link:hover {
+  color: white;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+  color: #9ca3af;
+}
+
+.contact-icon {
+  color: #60a5fa;
+  font-size: 1.125rem;
+}
+
+/* Градове */
+.cities-section {
+  padding-top: 3rem;
+  border-top: 1px solid #374151;
+  text-align: center;
+}
+
+.cities-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #f3f4f6;
+  margin-bottom: 1.5rem;
+}
+
+.cities-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.city-link {
+  color: #9ca3af;
+  background-color: #1f2937;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.city-link:hover {
+  color: white;
+  background-color: #374151;
+}
+
+/* Copyright */
+.copyright {
+  padding-top: 2rem;
+  border-top: 1px solid #374151;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 1024px) {
+  .footer-content {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .footer-content {
+    grid-template-columns: 1fr;
+  }
+}

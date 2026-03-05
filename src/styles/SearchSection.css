@@ -1,0 +1,88 @@
+/* Секция за търсене */
+.search-section {
+  padding: 80px 20px;
+  background-color: white;
+}
+
+.section-heading {
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: center;
+  color: #1e293b;
+  margin-bottom: 3rem;
+}
+
+.search-grid-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3rem;
+  margin-bottom: 3rem;
+}
+
+.category-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #4b5563;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.specialties-grid, .cities-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .specialties-grid, .cities-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.specialty-item, .city-item {
+  background-color: #f9fafb;
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s;
+}
+
+.specialty-item:hover, .city-item:hover {
+  background-color: #eff6ff;
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+}
+
+/* Съвет */
+.tip-box {
+  background-color: #eff6ff;
+  padding: 2rem;
+  border-radius: 16px;
+  border: 2px solid #bfdbfe;
+}
+
+.tip-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 1rem;
+}
+
+.tip-text {
+  color: #4b5563;
+  line-height: 1.7;
+}
+
+.tip-text strong {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .search-grid-container {
+    grid-template-columns: 1fr;
+  }
+}
