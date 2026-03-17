@@ -10,7 +10,9 @@ import Checkout from "./pages/Checkout";
 import Doctors from "./pages/Doctors";
 import DoctorDetails from "./pages/DoctorDetails";
 import AdvancedSearch from "./pages/AdvancedSearch";
+import AdminDashboard from "./pages/AdminDashboard";
 import Specialties from "./pages/Specialties";
+import Chat from "./pages/Chat";
 import Clinics from "./pages/Clinics";
 import Help from "./pages/Help";
 import Contact from "./pages/Contact";
@@ -106,6 +108,8 @@ export default function App() {
           />
 
           <Route path="/checkout" element={<Checkout authUser={authUser} />} />
+          <Route path="/chat" element={<Chat authUser={authUser} />} />
+          <Route path="/admin" element={<AdminDashboard authUser={authUser} />} />
 
           <Route path="/search" element={<AdvancedSearch />} />
           <Route path="/specialties" element={<Specialties />} />

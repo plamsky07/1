@@ -69,6 +69,10 @@ export function getStoredSession() {
   }
 }
 
+export function getAccessToken() {
+  return getStoredSession()?.access_token || "";
+}
+
 export async function signUpWithEmail(email, password, profile = {}) {
   const metadata = {
     first_name: profile.firstName?.trim() || "",

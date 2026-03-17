@@ -39,7 +39,7 @@ export default function Doctors() {
         if (!cancelled) {
           setDoctors(data);
         }
-      } catch (error) {
+      } catch {
         if (!cancelled) {
           setLoadError("Възникна проблем при зареждане на лекарите.");
         }

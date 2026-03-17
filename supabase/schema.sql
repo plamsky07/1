@@ -167,6 +167,230 @@ begin
   end if;
 end $$;
 
+create table if not exists public.subscriptions (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  plan text not null default 'free',
+  status text not null default 'inactive',
+  stripe_customer_id text unique,
+  stripe_subscription_id text unique,
+  current_period_end timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.set_updated_at_timestamp()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists subscriptions_set_updated_at on public.subscriptions;
+create trigger subscriptions_set_updated_at
+before update on public.subscriptions
+for each row
+execute function public.set_updated_at_timestamp();
+
+alter table public.subscriptions enable row level security;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'subscriptions'
+      and policyname = 'Users can read own subscriptions'
+  ) then
+    create policy "Users can read own subscriptions"
+      on public.subscriptions
+      for select
+      to authenticated
+      using (auth.uid() = user_id);
+  end if;
+end $$;
+
+create table if not exists public.chat_threads (
+  id uuid primary key default gen_random_uuid(),
+  subject text not null default 'Нова консултация',
+  status text not null default 'open',
+  priority text not null default 'normal',
+  category text not null default 'support',
+  created_by uuid not null references auth.users(id) on delete cascade,
+  assigned_admin_id uuid references auth.users(id) on delete set null,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  last_message_at timestamptz not null default now()
+);
+
+create index if not exists idx_chat_threads_last_message_at
+  on public.chat_threads(last_message_at desc);
+
+drop trigger if exists chat_threads_set_updated_at on public.chat_threads;
+create trigger chat_threads_set_updated_at
+before update on public.chat_threads
+for each row
+execute function public.set_updated_at_timestamp();
+
+alter table public.chat_threads enable row level security;
+
+create table if not exists public.chat_participants (
+  thread_id uuid not null references public.chat_threads(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  role text not null default 'patient',
+  joined_at timestamptz not null default now(),
+  primary key (thread_id, user_id)
+);
+
+create index if not exists idx_chat_participants_user_id
+  on public.chat_participants(user_id);
+
+alter table public.chat_participants enable row level security;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'chat_participants'
+      and policyname = 'Users can read own chat participants'
+  ) then
+    create policy "Users can read own chat participants"
+      on public.chat_participants
+      for select
+      to authenticated
+      using (
+        auth.uid() = user_id
+        or exists (
+          select 1
+          from public.chat_threads ct
+          where ct.id = thread_id
+            and ct.created_by = auth.uid()
+        )
+      );
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'chat_threads'
+      and policyname = 'Users can read own chat threads'
+  ) then
+    create policy "Users can read own chat threads"
+      on public.chat_threads
+      for select
+      to authenticated
+      using (
+        auth.uid() = created_by
+        or exists (
+          select 1
+          from public.chat_participants cp
+          where cp.thread_id = id
+            and cp.user_id = auth.uid()
+        )
+      );
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'chat_threads'
+      and policyname = 'Users can create own chat threads'
+  ) then
+    create policy "Users can create own chat threads"
+      on public.chat_threads
+      for insert
+      to authenticated
+      with check (auth.uid() = created_by);
+  end if;
+end $$;
+
+create table if not exists public.chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid not null references public.chat_threads(id) on delete cascade,
+  sender_id uuid not null references auth.users(id) on delete cascade,
+  sender_name text not null default '',
+  sender_role text not null default 'patient',
+  body text not null,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_chat_messages_thread_id
+  on public.chat_messages(thread_id, created_at asc);
+
+alter table public.chat_messages enable row level security;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'chat_messages'
+      and policyname = 'Users can read own chat messages'
+  ) then
+    create policy "Users can read own chat messages"
+      on public.chat_messages
+      for select
+      to authenticated
+      using (
+        exists (
+          select 1
+          from public.chat_participants cp
+          where cp.thread_id = thread_id
+            and cp.user_id = auth.uid()
+        )
+        or exists (
+          select 1
+          from public.chat_threads ct
+          where ct.id = thread_id
+            and ct.created_by = auth.uid()
+        )
+      );
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'chat_messages'
+      and policyname = 'Users can insert own chat messages'
+  ) then
+    create policy "Users can insert own chat messages"
+      on public.chat_messages
+      for insert
+      to authenticated
+      with check (
+        auth.uid() = sender_id
+        and (
+          exists (
+            select 1
+            from public.chat_participants cp
+            where cp.thread_id = thread_id
+              and cp.user_id = auth.uid()
+          )
+          or exists (
+            select 1
+            from public.chat_threads ct
+            where ct.id = thread_id
+              and ct.created_by = auth.uid()
+          )
+        )
+      );
+  end if;
+end $$;
+
 do $$
 begin
   if not exists (

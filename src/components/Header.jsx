@@ -1,5 +1,6 @@
 import { NavLink, Link } from "react-router-dom";
-import "../styles/Header.css"; 
+import { isAdminUser } from "../utils/userRole";
+import "../styles/Header.css";
 
 export default function Header({ authUser, onLogout, notificationCount = 0 }) {
   const navLinkClass = ({ isActive }) =>
@@ -7,6 +8,7 @@ export default function Header({ authUser, onLogout, notificationCount = 0 }) {
       ? "nav-link active"
       : "nav-link";
 
+  const isAdmin = isAdminUser(authUser);
   const fullName = [
     authUser?.user_metadata?.first_name,
     authUser?.user_metadata?.last_name,
@@ -41,6 +43,18 @@ export default function Header({ authUser, onLogout, notificationCount = 0 }) {
           <NavLink to="/help" className={navLinkClass}>
             Как работи?
           </NavLink>
+
+          {authUser && (
+            <NavLink to="/chat" className={navLinkClass}>
+              Чат
+            </NavLink>
+          )}
+
+          {isAdmin && (
+            <NavLink to="/admin" className={navLinkClass}>
+              Admin
+            </NavLink>
+          )}
         </nav>
 
         {/* ДЕСЕН БЛОК */}

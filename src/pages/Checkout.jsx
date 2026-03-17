@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { getCurrentUser } from "../services/authService";
+import { startCheckoutSession } from "../services/subscriptionsService";
 import "../styles/checkout.css";
 
 const PLANS = {
@@ -62,9 +62,8 @@ function formatPriceBGN(num) {
   return `€${num.toFixed(2)}`;
 }
 
-export default function Checkout() {
+export default function Checkout({ authUser }) {
   const location = useLocation();
-  const [authUser, setAuthUser] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
@@ -92,32 +91,20 @@ export default function Checkout() {
   });
 
   useEffect(() => {
-    let cancelled = false;
+    if (!authUser) return;
 
-    async function loadUser() {
-      const user = await getCurrentUser();
-      if (cancelled || !user) return;
-
-      setAuthUser(user);
-      setForm((prev) => ({
-        ...prev,
-        email: prev.email || user.email || "",
-        fullName:
-          prev.fullName ||
-          user.user_metadata?.full_name ||
-          [user.user_metadata?.first_name, user.user_metadata?.last_name]
-            .filter(Boolean)
-            .join(" ")
-            .trim(),
-      }));
-    }
-
-    loadUser();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    setForm((prev) => ({
+      ...prev,
+      email: prev.email || authUser.email || "",
+      fullName:
+        prev.fullName ||
+        authUser.user_metadata?.full_name ||
+        [authUser.user_metadata?.first_name, authUser.user_metadata?.last_name]
+          .filter(Boolean)
+          .join(" ")
+          .trim(),
+    }));
+  }, [authUser]);
 
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -145,23 +132,13 @@ export default function Checkout() {
 
     setIsSubmitting(true);
     try {
-      const apiBase = import.meta.env.VITE_API_URL || "http://localhost:4242";
-      const response = await fetch(`${apiBase}/api/stripe/create-checkout-session`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          planId: plan.id,
-          userId: authUser.id,
-          email: form.email.trim(),
-          fullName: form.fullName.trim(),
-        }),
+      const data = await startCheckoutSession({
+        planId: plan.id,
+        email: form.email.trim(),
+        fullName: form.fullName.trim(),
       });
-
-      const data = await response.json();
-      if (!response.ok || !data?.url) {
-        throw new Error(data?.error || "Неуспешно създаване на Stripe сесия.");
+      if (!data?.url) {
+        throw new Error("Неуспешно създаване на Stripe сесия.");
       }
 
       window.location.href = data.url;
@@ -210,7 +187,7 @@ export default function Checkout() {
 
           {status === "success" && (
             <div className="ml-alert ml-alert--success">
-              Плащането е успешно. Абонаментът ти е активиран.
+              Плащането е успешно. Абонаментът ти е активиран и можеш да го управляваш от профила си.
             </div>
           )}
           {status === "canceled" && (
@@ -433,7 +410,7 @@ export default function Checkout() {
       {/* Footer small */}
       <footer className="ml-checkout__footer">
         <span className="muted">
-          © {new Date().getFullYear()} MedLink • Payments powered by Stripe (soon)
+          © {new Date().getFullYear()} MedLink • Payments powered by Stripe
         </span>
       </footer>
     </div>

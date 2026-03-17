@@ -33,7 +33,7 @@ export default function DoctorDetails({ authUser, onAppointmentCreated }) {
           tomorrow.setDate(tomorrow.getDate() + 1);
           setAppointmentDate(tomorrow.toISOString().slice(0, 10));
         }
-      } catch (error) {
+      } catch {
         if (!cancelled) {
           setLoadError("Възникна проблем при зареждане на профила.");
         }

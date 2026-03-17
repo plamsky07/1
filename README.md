@@ -4,6 +4,7 @@
 
 ```bash
 npm install
+npm run server
 npm run dev
 ```
 
@@ -12,11 +13,23 @@ npm run dev
 1. Copy `.env.example` to `.env` and fill:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
+- `VITE_API_URL`
+- `VITE_SOCKET_URL`
+- `VITE_ADMIN_EMAILS`
 
-2. In Supabase SQL Editor run:
+2. Copy `server/.env.example` to `server/.env` and fill:
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `CLIENT_URL`
+- `ADMIN_EMAILS`
+
+3. In Supabase SQL Editor run:
 - `supabase/schema.sql`
 
-3. Insert doctors data in table `public.doctors`.
+4. Insert doctors data in table `public.doctors`.
 
 Required columns:
 - `id` (text, primary key)
@@ -47,6 +60,30 @@ Example row:
 }
 ```
 
+## New modules
+
+- `Socket.IO chat`: route `/chat`, realtime нишки между пациент и admin/support.
+- `Admin dashboard`: route `/admin`, Mermaid KPI диаграми за appointments, subscriptions и chat activity.
+- `Stripe billing`: Checkout през `/checkout`, webhook sync към `public.subscriptions`, billing portal от профила.
+
+## Stripe webhook setup
+
+1. In Stripe Dashboard create a webhook endpoint to:
+- `http://localhost:4242/api/stripe/webhook`
+
+2. Select these events:
+- `checkout.session.completed`
+- `customer.subscription.created`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+
+3. Copy the generated secret to:
+- `server/.env` -> `STRIPE_WEBHOOK_SECRET`
+
+4. Start both apps:
+- `npm run server`
+- `npm run dev`
+
 ## Fallback behavior
 
-If Supabase env vars are missing or request fails, the app uses local demo data from `src/data/doctorsData.js`.
+If Supabase env vars are missing or request fails, the doctors pages still use local demo data from `src/data/doctorsData.js`. Chat and admin analytics need the backend plus the new schema tables from `supabase/schema.sql`.
