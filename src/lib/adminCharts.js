@@ -55,3 +55,23 @@ export function buildChatLoadChart(points = []) {
     `line [${values.join(", ")}]`,
   ].join("\n");
 }
+
+export function buildUserRoleChart(items = []) {
+  const rows = items.length > 0 ? items : [{ label: "No users", value: 1 }];
+
+  return [
+    "pie showData",
+    'title "Роли и типове акаунти"',
+    ...rows.map((item) => `${quoteLabel(item.label)} : ${clampNumber(item.value)}`),
+  ].join("\n");
+}
+
+export function buildDoctorVerificationChart(items = []) {
+  const rows = items.length > 0 ? items : [{ label: "No applications", value: 1 }];
+
+  return [
+    "pie showData",
+    'title "Статус на лекарските кандидатури"',
+    ...rows.map((item) => `${quoteLabel(item.label)} : ${clampNumber(item.value)}`),
+  ].join("\n");
+}

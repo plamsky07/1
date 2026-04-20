@@ -4,6 +4,7 @@ import { Routes, Route } from "react-router-dom";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import ScrollToTop from "./components/ScrollToTop";
+import ToastViewport from "./components/ToastViewport";
 
 // Pages
 import Checkout from "./pages/Checkout";
@@ -25,10 +26,12 @@ import Profile from "./pages/Profile";
 
 import { getCurrentUser, signOut } from "./services/authService";
 import { fetchMyAppointmentsCount } from "./services/appointmentsService";
+import { useToast } from "./context/ToastState";
 
 export default function App() {
   const [authUser, setAuthUser] = useState(null);
   const [notificationCount, setNotificationCount] = useState(0);
+  const { showInfo } = useToast();
 
   const refreshNotificationCount = useCallback(
     async (userId) => {
@@ -78,7 +81,10 @@ export default function App() {
     await signOut();
     setAuthUser(null);
     setNotificationCount(0);
-  }, []);
+    showInfo("Сесията беше затворена успешно.", {
+      title: "Изход",
+    });
+  }, [showInfo]);
 
   return (
     <>
@@ -90,6 +96,7 @@ export default function App() {
         onLogout={handleLogout}
         notificationCount={notificationCount}
       />
+      <ToastViewport />
 
       <main style={{ minHeight: "70vh" }}>
         <Routes>

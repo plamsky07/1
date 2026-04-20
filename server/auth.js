@@ -1,5 +1,10 @@
 const { ADMIN_EMAILS, sanitizeText } = require("./config");
-const { hasSupabaseAuthConfig, supabaseRequest } = require("./supabase");
+const {
+  hasSupabaseAdminConfig,
+  hasSupabaseAuthConfig,
+  safeFetchRows,
+  supabaseRequest,
+} = require("./supabase");
 
 function extractBearerToken(req) {
   const header = String(req.headers.authorization || "");
@@ -20,8 +25,24 @@ function getUserDisplayName(user) {
   );
 }
 
-function isAdminUser(user) {
+async function fetchProfileByUserId(userId) {
+  if (!hasSupabaseAdminConfig() || !userId) {
+    return null;
+  }
+
+  const rows = await safeFetchRows("profiles", {
+    limit: 1,
+    filters: {
+      id: `eq.${userId}`,
+    },
+  });
+
+  return rows[0] || null;
+}
+
+function isAdminUser(user, profile) {
   const roleCandidates = [
+    profile?.role,
     user?.user_metadata?.role,
     user?.app_metadata?.role,
     user?.role,
@@ -35,12 +56,33 @@ function isAdminUser(user) {
   );
 }
 
-function normalizeAuthUser(user) {
+function normalizeAuthUser(user, profile = null) {
+  const accountType =
+    sanitizeText(
+      profile?.account_type || profile?.accountType || user?.user_metadata?.account_type,
+      40
+    ) || "patient";
+  const verificationStatus =
+    sanitizeText(
+      profile?.verification_status ||
+        profile?.verificationStatus ||
+        user?.user_metadata?.verification_status,
+      40
+    ) || (accountType === "doctor" ? "pending_review" : "active");
+  const accountStatus =
+    sanitizeText(profile?.account_status || profile?.accountStatus, 40) || "active";
+  const profileRole =
+    sanitizeText(profile?.role || user?.user_metadata?.role || user?.role, 40) || accountType;
+
   return {
     id: String(user?.id || ""),
     email: String(user?.email || ""),
     fullName: getUserDisplayName(user),
-    isAdmin: isAdminUser(user),
+    isAdmin: isAdminUser(user, profile),
+    profileRole,
+    accountType,
+    verificationStatus,
+    accountStatus,
     metadata: user?.user_metadata || {},
   };
 }
@@ -69,7 +111,13 @@ async function requireUser(req, res, next) {
     }
 
     const user = await fetchSupabaseUser(accessToken);
-    req.currentUser = normalizeAuthUser(user);
+    const profile = await fetchProfileByUserId(user?.id);
+    req.currentUser = normalizeAuthUser(user, profile);
+
+    if (req.currentUser.accountStatus === "blocked") {
+      return res.status(403).json({ error: "Профилът е временно ограничен от администратор." });
+    }
+
     req.accessToken = accessToken;
     next();
   } catch (error) {
@@ -96,4 +144,5 @@ module.exports = {
   normalizeAuthUser,
   requireAdmin,
   requireUser,
+  fetchProfileByUserId,
 };

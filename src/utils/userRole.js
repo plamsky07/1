@@ -22,6 +22,8 @@ export function isAdminUser(user) {
   if (!user) return false;
 
   const roleCandidates = [
+    user.profileRole,
+    user.profile?.role,
     user.user_metadata?.role,
     user.app_metadata?.role,
     user.role,
@@ -30,6 +32,22 @@ export function isAdminUser(user) {
     .filter(Boolean);
 
   return roleCandidates.includes("admin") || ADMIN_EMAILS.includes(String(user.email || "").toLowerCase());
+}
+
+export function isDoctorUser(user) {
+  if (!user) return false;
+
+  const accountTypeCandidates = [
+    user.accountType,
+    user.profile?.accountType,
+    user.profile?.account_type,
+    user.user_metadata?.account_type,
+    user.user_metadata?.role,
+  ]
+    .map((value) => String(value || "").trim().toLowerCase())
+    .filter(Boolean);
+
+  return accountTypeCandidates.includes("doctor");
 }
 
 export function getUserInitials(user) {

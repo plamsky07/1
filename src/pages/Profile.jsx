@@ -5,7 +5,8 @@ import {
   createBillingPortalSession,
   fetchMySubscription,
 } from "../services/subscriptionsService";
-import { isAdminUser } from "../utils/userRole";
+import { useToast } from "../context/ToastState";
+import { isAdminUser, isDoctorUser } from "../utils/userRole";
 import "../styles/Profile.css";
 
 export default function Profile({ authUser, onAuthChange }) {
@@ -23,8 +24,11 @@ export default function Profile({ authUser, onAuthChange }) {
   const [subscriptionError, setSubscriptionError] = useState("");
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
   const [billingLoading, setBillingLoading] = useState(false);
+  const [profileMeta, setProfileMeta] = useState(null);
 
   const canAccessAdmin = useMemo(() => isAdminUser(authUser), [authUser]);
+  const isDoctor = useMemo(() => isDoctorUser(authUser), [authUser]);
+  const { showError, showInfo, showSuccess } = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -58,11 +62,14 @@ export default function Profile({ authUser, onAuthChange }) {
             phone: profile.phone || "",
             email: profile.email || authUser.email || "",
           });
+          setProfileMeta(profile);
           setSubscription(subscriptionResult?.subscription || null);
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err?.message || "Неуспешно зареждане на профила.");
+          const text = err?.message || "Неуспешно зареждане на профила.";
+          setError(text);
+          showError(text);
         }
       } finally {
         if (!cancelled) {
@@ -77,7 +84,7 @@ export default function Profile({ authUser, onAuthChange }) {
     return () => {
       cancelled = true;
     };
-  }, [authUser]);
+  }, [authUser, showError]);
 
   if (!authUser) {
     return <Navigate to="/auth" replace />;
@@ -112,9 +119,17 @@ export default function Profile({ authUser, onAuthChange }) {
         lastName: result.profile.lastName,
         phone: result.profile.phone,
       }));
-      setMessage("Профилът е обновен успешно.");
+      setProfileMeta((prev) => ({
+        ...(prev || {}),
+        ...result.profile,
+      }));
+      const text = "Профилът е обновен успешно.";
+      setMessage(text);
+      showSuccess(text, { title: "Профил" });
     } catch (err) {
-      setError(err?.message || "Неуспешно обновяване на профила.");
+      const text = err?.message || "Неуспешно обновяване на профила.";
+      setError(text);
+      showError(text);
     } finally {
       setSaving(false);
     }
@@ -130,9 +145,14 @@ export default function Profile({ authUser, onAuthChange }) {
         throw new Error("Stripe не върна billing portal URL.");
       }
 
+      showInfo("Отваряме Stripe Billing Portal в защитен режим.", {
+        title: "Stripe Billing",
+      });
       window.location.href = data.url;
     } catch (err) {
-      setSubscriptionError(err?.message || "Неуспешно стартиране на Stripe portal.");
+      const text = err?.message || "Неуспешно стартиране на Stripe portal.";
+      setSubscriptionError(text);
+      showError(text);
     } finally {
       setBillingLoading(false);
     }
@@ -198,6 +218,44 @@ export default function Profile({ authUser, onAuthChange }) {
 
             {error && <p className="profile-error">{error}</p>}
             {message && <p className="profile-success">{message}</p>}
+
+            {profileMeta && (
+              <div className="profile-subscription-box" style={{ marginTop: 18 }}>
+                <div className="profile-subscription-row">
+                  <span>Тип акаунт</span>
+                  <strong>{profileMeta.accountType === "doctor" ? "Лекар" : "Пациент"}</strong>
+                </div>
+                <div className="profile-subscription-row">
+                  <span>Статус</span>
+                  <strong>{profileMeta.accountStatus || "active"}</strong>
+                </div>
+                <div className="profile-subscription-row">
+                  <span>Верификация</span>
+                  <strong>{profileMeta.verificationStatus || "active"}</strong>
+                </div>
+              </div>
+            )}
+
+            {isDoctor && profileMeta?.doctorProfile && (
+              <div className="profile-subscription-box" style={{ marginTop: 18 }}>
+                <div className="profile-subscription-row">
+                  <span>Специалност</span>
+                  <strong>{profileMeta.doctorProfile.specialty || "—"}</strong>
+                </div>
+                <div className="profile-subscription-row">
+                  <span>Клиника</span>
+                  <strong>{profileMeta.doctorProfile.clinicName || "—"}</strong>
+                </div>
+                <div className="profile-subscription-row">
+                  <span>Лиценз</span>
+                  <strong>{profileMeta.doctorProfile.licenseNumber || "—"}</strong>
+                </div>
+                <div className="profile-subscription-row">
+                  <span>Публикуван профил</span>
+                  <strong>{profileMeta.doctorProfile.isListed ? "Да" : "Не"}</strong>
+                </div>
+              </div>
+            )}
           </div>
 
           <aside className="profile-side-card">

@@ -7,6 +7,7 @@ const {
   stripe,
   sanitizeText,
 } = require("./config");
+const { fetchAdminUsers, fetchDoctorApplications } = require("./adminStore");
 const { fetchAllChatParticipants, fetchAllChatThreads, fetchMessagesByThreadIds, buildThreadSummary } = require("./chatStore");
 const { normalizeSubscription } = require("./subscriptions");
 const { hasSupabaseAdminConfig, safeFetchRows } = require("./supabase");
@@ -186,13 +187,23 @@ function centsToCurrency(amount, currency = "EUR") {
 }
 
 async function buildAdminOverview() {
-  const [appointmentRows, doctorRows, subscriptionRows, threads, participants] =
+  const [
+    appointmentRows,
+    doctorRows,
+    subscriptionRows,
+    threads,
+    participants,
+    adminUsers,
+    doctorApplications,
+  ] =
     await Promise.all([
       safeFetchRows("appointments", { order: "created_at.desc" }),
       safeFetchRows("doctors", { order: "id.asc" }),
       safeFetchRows("subscriptions", { order: "updated_at.desc" }),
       fetchAllChatThreads(),
       fetchAllChatParticipants(),
+      fetchAdminUsers(),
+      fetchDoctorApplications(),
     ]);
 
   const appointments = appointmentRows.map(normalizeAppointment);
@@ -220,6 +231,17 @@ async function buildAdminOverview() {
     },
     summary: {
       totalDoctors: doctorRows.length,
+      totalUsers: adminUsers.length,
+      totalPatients: adminUsers.filter((item) => item.accountType !== "doctor").length,
+      pendingDoctorApplications: doctorApplications.filter(
+        (item) =>
+          (item.doctorProfile?.verificationStatus || item.verificationStatus) ===
+          "pending_review"
+      ).length,
+      approvedDoctors: doctorApplications.filter(
+        (item) =>
+          (item.doctorProfile?.verificationStatus || item.verificationStatus) === "approved"
+      ).length,
       totalAppointments: appointments.length,
       upcomingAppointments: upcomingAppointments.length,
       bookingsToday: upcomingAppointments.filter(
@@ -243,6 +265,15 @@ async function buildAdminOverview() {
       appointmentStatus: mapCountObjectToArray(
         countBy(appointments, (item) => item.status)
       ),
+      userRoles: mapCountObjectToArray(
+        countBy(adminUsers, (item) => item.role || item.accountType || "patient")
+      ),
+      doctorVerification: mapCountObjectToArray(
+        countBy(
+          doctorApplications,
+          (item) => item.doctorProfile?.verificationStatus || item.verificationStatus || "pending_review"
+        )
+      ),
     },
     highlights: {
       topSpecialties: mapCountObjectToArray(
@@ -251,10 +282,18 @@ async function buildAdminOverview() {
       topPlans: mapCountObjectToArray(
         countBy(activeSubscriptions, (item) => item.plan.toUpperCase())
       ).slice(0, 4),
+      topCities: mapCountObjectToArray(
+        countBy(
+          doctorApplications.filter((item) => item.doctorProfile?.city),
+          (item) => item.doctorProfile?.city || "Unknown"
+        )
+      ).slice(0, 4),
     },
     recent: {
       appointments: appointments.slice(0, 5),
       subscriptions: subscriptions.slice(0, 5),
+      users: adminUsers.slice(0, 6),
+      doctorApplications: doctorApplications.slice(0, 6),
       threads: threads
         .map((thread) =>
           buildThreadSummary(

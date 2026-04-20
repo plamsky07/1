@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { deleteAppointment, fetchMyAppointments } from "../services/appointmentsService";
+import { useToast } from "../context/ToastState";
 
 function formatBgDate(dateValue) {
   if (!dateValue) return "";
@@ -19,6 +20,7 @@ export default function Appointments({ authUser, onAppointmentsChanged }) {
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
   const [deletingId, setDeletingId] = useState("");
+  const { showError, showSuccess } = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -41,7 +43,9 @@ export default function Appointments({ authUser, onAppointmentsChanged }) {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err?.message || "Неуспешно зареждане на известията.");
+          const text = err?.message || "Неуспешно зареждане на известията.";
+          setError(text);
+          showError(text);
         }
       } finally {
         if (!cancelled) {
@@ -54,7 +58,7 @@ export default function Appointments({ authUser, onAppointmentsChanged }) {
     return () => {
       cancelled = true;
     };
-  }, [authUser?.id, onAppointmentsChanged]);
+  }, [authUser?.id, onAppointmentsChanged, showError]);
 
   const handleDelete = async (itemId) => {
     if (!authUser?.id) return;
@@ -65,8 +69,11 @@ export default function Appointments({ authUser, onAppointmentsChanged }) {
       await deleteAppointment(itemId, authUser.id);
       setItems((prev) => prev.filter((item) => String(item.id) !== String(itemId)));
       await onAppointmentsChanged?.();
+      showSuccess("Часът беше премахнат.", { title: "Резервацията е обновена" });
     } catch (err) {
-      setActionError(err?.message || "Неуспешно премахване на часа.");
+      const text = err?.message || "Неуспешно премахване на часа.";
+      setActionError(text);
+      showError(text);
     } finally {
       setDeletingId("");
     }

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { fetchDoctorById } from "../services/doctorsService";
 import { createAppointment } from "../services/appointmentsService";
+import { useToast } from "../context/ToastState";
 
 export default function DoctorDetails({ authUser, onAppointmentCreated }) {
   const { id } = useParams();
@@ -15,6 +16,7 @@ export default function DoctorDetails({ authUser, onAppointmentCreated }) {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState("");
   const [bookingMessage, setBookingMessage] = useState("");
+  const { showError, showSuccess } = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +38,7 @@ export default function DoctorDetails({ authUser, onAppointmentCreated }) {
       } catch {
         if (!cancelled) {
           setLoadError("Възникна проблем при зареждане на профила.");
+          showError("Не успяхме да заредим профила на лекаря.");
         }
       } finally {
         if (!cancelled) {
@@ -48,7 +51,7 @@ export default function DoctorDetails({ authUser, onAppointmentCreated }) {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, showError]);
 
   if (isLoading) {
     return (
@@ -87,12 +90,16 @@ export default function DoctorDetails({ authUser, onAppointmentCreated }) {
     setBookingMessage("");
 
     if (!authUser?.id) {
-      setBookingError("Трябва да влезеш в профила си, за да запишеш час.");
+      const text = "Трябва да влезеш в профила си, за да запишеш час.";
+      setBookingError(text);
+      showError(text);
       return;
     }
 
     if (!appointmentDate || !selectedSlot || !selectedService) {
-      setBookingError("Избери дата, час и услуга.");
+      const text = "Избери дата, час и услуга.";
+      setBookingError(text);
+      showError(text);
       return;
     }
 
@@ -118,11 +125,15 @@ export default function DoctorDetails({ authUser, onAppointmentCreated }) {
         patientEmail: authUser.email || "",
       });
 
-      setBookingMessage("Часът е запазен успешно.");
+      const text = "Часът е запазен успешно.";
+      setBookingMessage(text);
+      showSuccess(text, { title: "Резервацията е приета" });
       setNotes("");
       await onAppointmentCreated?.();
     } catch (error) {
-      setBookingError(error?.message || "Неуспешно записване на час.");
+      const text = error?.message || "Неуспешно записване на час.";
+      setBookingError(text);
+      showError(text);
     } finally {
       setBookingLoading(false);
     }

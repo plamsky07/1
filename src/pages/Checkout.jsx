@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { startCheckoutSession } from "../services/subscriptionsService";
+import { useToast } from "../context/ToastState";
 import "../styles/checkout.css";
 
 const PLANS = {
@@ -66,6 +67,7 @@ export default function Checkout({ authUser }) {
   const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const { showError, showInfo, showSuccess, showWarning } = useToast();
 
   // Вземаме план от query: /checkout?plan=pro
   const planKey = useMemo(() => {
@@ -76,6 +78,20 @@ export default function Checkout({ authUser }) {
 
   const plan = PLANS[planKey];
   const status = new URLSearchParams(location.search).get("status");
+
+  useEffect(() => {
+    if (status === "success") {
+      showSuccess("Плащането е успешно. Абонаментът вече може да се управлява от профила ти.", {
+        title: "Stripe Checkout",
+      });
+    }
+
+    if (status === "canceled") {
+      showWarning("Плащането беше прекъснато. Можеш да опиташ отново по всяко време.", {
+        title: "Stripe Checkout",
+      });
+    }
+  }, [showSuccess, showWarning, status]);
 
   // UI-only state
   const [form, setForm] = useState({
@@ -116,17 +132,23 @@ export default function Checkout({ authUser }) {
     setSubmitError("");
 
     if (!authUser?.id) {
-      setSubmitError("Трябва да влезеш в профила си преди плащане.");
+      const text = "Трябва да влезеш в профила си преди плащане.";
+      setSubmitError(text);
+      showError(text);
       return;
     }
 
     if (!form.email.trim() || !form.fullName.trim()) {
-      setSubmitError("Попълни имейл и име за фактура.");
+      const text = "Попълни имейл и име за фактура.";
+      setSubmitError(text);
+      showError(text);
       return;
     }
 
     if (!form.agree) {
-      setSubmitError("Трябва да приемеш условията и поверителността.");
+      const text = "Трябва да приемеш условията и поверителността.";
+      setSubmitError(text);
+      showError(text);
       return;
     }
 
@@ -141,9 +163,14 @@ export default function Checkout({ authUser }) {
         throw new Error("Неуспешно създаване на Stripe сесия.");
       }
 
+      showInfo("Пренасочваме те към защитеното Stripe плащане.", {
+        title: "Stripe Checkout",
+      });
       window.location.href = data.url;
     } catch (error) {
-      setSubmitError(error?.message || "Проблем при стартиране на плащането.");
+      const text = error?.message || "Проблем при стартиране на плащането.";
+      setSubmitError(text);
+      showError(text);
     } finally {
       setIsSubmitting(false);
     }

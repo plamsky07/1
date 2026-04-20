@@ -1,6 +1,27 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { signInWithEmail, signUpWithEmail } from "../services/authService";
+import { getCurrentUser, signInWithEmail, signUpWithEmail } from "../services/authService";
+import { useToast } from "../context/ToastState";
+
+const ACCOUNT_OPTIONS = [
+  {
+    value: "patient",
+    label: "Пациент",
+    description: "Стандартен профил за записване на часове, чат и плащания.",
+  },
+  {
+    value: "doctor",
+    label: "Лекар",
+    description: "Кандидатстваш като лекар и профилът ти минава през admin проверка.",
+  },
+];
+
+const fieldStyle = {
+  padding: 12,
+  borderRadius: 10,
+  border: "1px solid #ddd",
+  width: "100%",
+};
 
 export default function Auth({ authUser, onAuthChange }) {
   const [mode, setMode] = useState("login");
@@ -10,16 +31,37 @@ export default function Auth({ authUser, onAuthChange }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [accountType, setAccountType] = useState("patient");
+  const [doctorSpecialty, setDoctorSpecialty] = useState("");
+  const [doctorCity, setDoctorCity] = useState("");
+  const [doctorClinicName, setDoctorClinicName] = useState("");
+  const [doctorLicenseNumber, setDoctorLicenseNumber] = useState("");
+  const [doctorYearsExperience, setDoctorYearsExperience] = useState("");
+  const [doctorServices, setDoctorServices] = useState("");
+  const [doctorLanguages, setDoctorLanguages] = useState("");
+  const [doctorBio, setDoctorBio] = useState("");
+  const [doctorOnline, setDoctorOnline] = useState(true);
+  const [doctorCertificationConfirmed, setDoctorCertificationConfirmed] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const { showError, showInfo, showSuccess } = useToast();
+
+  const isRegister = mode === "register";
+  const registeringDoctor = isRegister && accountType === "doctor";
+
+  const registerHint = useMemo(() => {
+    if (!registeringDoctor) {
+      return "Създай профил, за да записваш часове онлайн.";
+    }
+
+    return "Попълни професионалните си данни. След потвърждение на имейла admin екипът ще прегледа лекарската ти кандидатура.";
+  }, [registeringDoctor]);
 
   if (authUser) {
     return <Navigate to="/" replace />;
   }
-
-  const isRegister = mode === "register";
 
   const resetMessages = () => {
     setError("");
@@ -34,44 +76,91 @@ export default function Auth({ authUser, onAuthChange }) {
     /\d/.test(value);
   const validatePhone = (value) => !value || /^\+?[0-9\s-]{7,20}$/.test(value);
 
+  const validateDoctorForm = () => {
+    if (!doctorSpecialty.trim() || !doctorCity.trim() || !doctorClinicName.trim()) {
+      return "Попълни специалност, град и клиника.";
+    }
+
+    if (!doctorLicenseNumber.trim()) {
+      return "Лиценз/регистрационен номер е задължителен за лекарски профил.";
+    }
+
+    if (!doctorYearsExperience || Number(doctorYearsExperience) < 0) {
+      return "Годините опит трябва да са валидно число.";
+    }
+
+    if (!doctorBio.trim() || doctorBio.trim().length < 40) {
+      return "Добави кратко професионално описание от поне 40 символа.";
+    }
+
+    if (!doctorCertificationConfirmed) {
+      return "Трябва да потвърдиш, че си сертифициран лекар и носиш отговорност за въведените данни.";
+    }
+
+    return "";
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     resetMessages();
 
     if (!email || !password) {
-      setError("Попълни имейл и парола.");
+      const text = "Попълни имейл и парола.";
+      setError(text);
+      showError(text);
       return;
     }
 
     if (!validateEmail(email)) {
-      setError("Въведи валиден имейл.");
+      const text = "Въведи валиден имейл.";
+      setError(text);
+      showError(text);
       return;
     }
 
     if (!validatePassword(password)) {
-      setError("Паролата трябва да е минимум 8 символа и да съдържа малка, главна буква и цифра.");
+      const text = "Паролата трябва да е минимум 8 символа и да съдържа малка, главна буква и цифра.";
+      setError(text);
+      showError(text);
       return;
     }
 
     if (isRegister) {
       if (!firstName.trim() || !lastName.trim()) {
-        setError("Попълни име и фамилия.");
+        const text = "Попълни име и фамилия.";
+        setError(text);
+        showError(text);
         return;
       }
 
       if (!validatePhone(phone.trim())) {
-        setError("Телефонният номер е невалиден.");
+        const text = "Телефонният номер е невалиден.";
+        setError(text);
+        showError(text);
         return;
       }
 
       if (password !== confirmPassword) {
-        setError("Паролите не съвпадат.");
+        const text = "Паролите не съвпадат.";
+        setError(text);
+        showError(text);
         return;
       }
 
       if (!acceptedTerms) {
-        setError("Трябва да приемеш условията за ползване.");
+        const text = "Трябва да приемеш условията за ползване.";
+        setError(text);
+        showError(text);
         return;
+      }
+
+      if (accountType === "doctor") {
+        const doctorValidationError = validateDoctorForm();
+        if (doctorValidationError) {
+          setError(doctorValidationError);
+          showError(doctorValidationError);
+          return;
+        }
       }
     }
 
@@ -82,21 +171,60 @@ export default function Auth({ authUser, onAuthChange }) {
           firstName,
           lastName,
           phone,
+          accountType,
+          doctorSpecialty,
+          doctorCity,
+          doctorClinicName,
+          doctorLicenseNumber,
+          doctorYearsExperience,
+          doctorServices,
+          doctorLanguages,
+          doctorBio,
+          doctorOnline,
+          doctorCertificationConfirmed,
         });
 
         if (data?.user && !data?.access_token) {
-          setMessage("Регистрацията е успешна. Провери имейла си за потвърждение.");
+          const toastText =
+            "Изпратихме имейл за потвърждение. Потвърди адреса си, преди да опиташ вход в MedLink.";
+          setMessage(toastText);
+          showInfo(toastText, {
+            title: "Потвърди имейла си",
+            persistent: true,
+            persistentKey: `confirm-email:${email.trim().toLowerCase()}`,
+          });
         } else {
-          setMessage("Регистрацията е успешна.");
-          onAuthChange?.(data?.user ?? null);
+          const currentUser = await getCurrentUser();
+          onAuthChange?.(currentUser ?? data?.user ?? null);
+          const successText =
+            accountType === "doctor"
+              ? "Профилът е създаден. Лекарската информация е изпратена за проверка."
+              : "Регистрацията е успешна.";
+          setMessage(successText);
+          showSuccess(successText, { title: "Добре дошъл в MedLink" });
         }
       } else {
         const data = await signInWithEmail(email, password);
-        onAuthChange?.(data?.user ?? null);
-        setMessage("Успешен вход.");
+        onAuthChange?.(data?.user ?? (await getCurrentUser()) ?? null);
+        const successText = "Успешен вход.";
+        setMessage(successText);
+        showSuccess(successText, { title: "Сесията е активна" });
       }
     } catch (err) {
-      setError(err?.message || "Възникна грешка при автентикация.");
+      const authError = err?.message || "Възникна грешка при автентикация.";
+      setError(authError);
+      showError(authError);
+
+      if (/confirm|confirmed|verification/i.test(authError)) {
+        showInfo(
+          "Ако току-що си се регистрирал, отвори имейла си и потвърди профила. Този toast ще остане, докато не го махнеш ръчно.",
+          {
+            title: "Изчаква се потвърждение",
+            persistent: true,
+            persistentKey: `confirm-email:${email.trim().toLowerCase()}`,
+          }
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -106,12 +234,10 @@ export default function Auth({ authUser, onAuthChange }) {
     <div className="container" style={{ padding: "24px 0" }}>
       <h1>{isRegister ? "Регистрация" : "Вход"}</h1>
       <p style={{ color: "#555" }}>
-        {isRegister
-          ? "Създай профил, за да записваш часове онлайн."
-          : "Влез в профила си, за да управляваш записванията."}
+        {isRegister ? registerHint : "Влез в профила си, за да управляваш записванията."}
       </p>
 
-      <div style={{ maxWidth: 420, marginTop: 20 }}>
+      <div style={{ maxWidth: 780, marginTop: 20 }}>
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <button
             type="button"
@@ -152,6 +278,38 @@ export default function Auth({ authUser, onAuthChange }) {
         <form onSubmit={handleSubmit} style={{ display: "grid", gap: 10 }}>
           {isRegister && (
             <>
+              <div style={{ display: "grid", gap: 10 }}>
+                <span style={{ fontWeight: 700, color: "#0f172a" }}>Тип профил</span>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+                  {ACCOUNT_OPTIONS.map((option) => (
+                    <label
+                      key={option.value}
+                      style={{
+                        border: accountType === option.value ? "1px solid #1d4ed8" : "1px solid #dbe2ea",
+                        background: accountType === option.value ? "#eff6ff" : "#ffffff",
+                        borderRadius: 16,
+                        padding: 14,
+                        display: "grid",
+                        gap: 6,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <input
+                          type="radio"
+                          name="accountType"
+                          value={option.value}
+                          checked={accountType === option.value}
+                          onChange={(event) => setAccountType(event.target.value)}
+                        />
+                        <strong>{option.label}</strong>
+                      </div>
+                      <span style={{ color: "#475569", fontSize: 14 }}>{option.description}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <input
                   type="text"
@@ -159,7 +317,7 @@ export default function Auth({ authUser, onAuthChange }) {
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="Име"
                   autoComplete="given-name"
-                  style={{ padding: 12, borderRadius: 10, border: "1px solid #ddd" }}
+                  style={fieldStyle}
                 />
                 <input
                   type="text"
@@ -167,7 +325,7 @@ export default function Auth({ authUser, onAuthChange }) {
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="Фамилия"
                   autoComplete="family-name"
-                  style={{ padding: 12, borderRadius: 10, border: "1px solid #ddd" }}
+                  style={fieldStyle}
                 />
               </div>
 
@@ -175,10 +333,112 @@ export default function Auth({ authUser, onAuthChange }) {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="Телефон (по избор)"
+                placeholder="Телефон"
                 autoComplete="tel"
-                style={{ padding: 12, borderRadius: 10, border: "1px solid #ddd" }}
+                style={fieldStyle}
               />
+
+              {registeringDoctor && (
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 12,
+                    padding: 18,
+                    borderRadius: 18,
+                    background: "#f8fafc",
+                    border: "1px solid #dbe2ea",
+                  }}
+                >
+                  <strong style={{ color: "#0f172a" }}>Професионални данни за лекар</strong>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <input
+                      type="text"
+                      value={doctorSpecialty}
+                      onChange={(event) => setDoctorSpecialty(event.target.value)}
+                      placeholder="Специалност"
+                      style={fieldStyle}
+                    />
+                    <input
+                      type="text"
+                      value={doctorCity}
+                      onChange={(event) => setDoctorCity(event.target.value)}
+                      placeholder="Град"
+                      style={fieldStyle}
+                    />
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <input
+                      type="text"
+                      value={doctorClinicName}
+                      onChange={(event) => setDoctorClinicName(event.target.value)}
+                      placeholder="Клиника / медицински център"
+                      style={fieldStyle}
+                    />
+                    <input
+                      type="text"
+                      value={doctorLicenseNumber}
+                      onChange={(event) => setDoctorLicenseNumber(event.target.value)}
+                      placeholder="Лиценз / УИН / регистрационен номер"
+                      style={fieldStyle}
+                    />
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <input
+                      type="number"
+                      min="0"
+                      value={doctorYearsExperience}
+                      onChange={(event) => setDoctorYearsExperience(event.target.value)}
+                      placeholder="Години опит"
+                      style={fieldStyle}
+                    />
+                    <input
+                      type="text"
+                      value={doctorLanguages}
+                      onChange={(event) => setDoctorLanguages(event.target.value)}
+                      placeholder="Езици, разделени със запетая"
+                      style={fieldStyle}
+                    />
+                  </div>
+
+                  <input
+                    type="text"
+                    value={doctorServices}
+                    onChange={(event) => setDoctorServices(event.target.value)}
+                    placeholder="Услуги, разделени със запетая"
+                    style={fieldStyle}
+                  />
+
+                  <textarea
+                    rows={4}
+                    value={doctorBio}
+                    onChange={(event) => setDoctorBio(event.target.value)}
+                    placeholder="Професионално описание, опит, области на практика..."
+                    style={{ ...fieldStyle, resize: "vertical" }}
+                  />
+
+                  <label style={{ display: "flex", gap: 8, alignItems: "center", color: "#334155" }}>
+                    <input
+                      type="checkbox"
+                      checked={doctorOnline}
+                      onChange={(event) => setDoctorOnline(event.target.checked)}
+                    />
+                    Предлагам и онлайн консултации
+                  </label>
+
+                  <label style={{ display: "flex", gap: 8, alignItems: "flex-start", color: "#334155", fontSize: 14 }}>
+                    <input
+                      type="checkbox"
+                      checked={doctorCertificationConfirmed}
+                      onChange={(event) => setDoctorCertificationConfirmed(event.target.checked)}
+                      style={{ marginTop: 2 }}
+                    />
+                    Потвърждавам, че съм реално сертифициран лекар и въведените данни, лиценз и квалификация са верни. Разбирам, че профилът ми ще бъде прегледан от администратор преди публикуване.
+                  </label>
+                </div>
+              )}
             </>
           )}
 
@@ -188,7 +448,7 @@ export default function Auth({ authUser, onAuthChange }) {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Имейл"
             autoComplete="email"
-            style={{ padding: 12, borderRadius: 10, border: "1px solid #ddd" }}
+            style={fieldStyle}
           />
 
           <input
@@ -197,7 +457,7 @@ export default function Auth({ authUser, onAuthChange }) {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Парола"
             autoComplete={isRegister ? "new-password" : "current-password"}
-            style={{ padding: 12, borderRadius: 10, border: "1px solid #ddd" }}
+            style={fieldStyle}
           />
 
           {isRegister && (
@@ -207,7 +467,7 @@ export default function Auth({ authUser, onAuthChange }) {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Повтори паролата"
               autoComplete="new-password"
-              style={{ padding: 12, borderRadius: 10, border: "1px solid #ddd" }}
+              style={fieldStyle}
             />
           )}
 

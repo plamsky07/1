@@ -1,12 +1,21 @@
 const http = require("http");
+const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { Server } = require("socket.io");
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
+dotenv.config({ path: path.resolve(__dirname, ".env"), override: true });
 
 const { buildAdminOverview } = require("./analytics");
+const {
+  fetchAdminUsers,
+  fetchDoctorApplications,
+  reviewDoctorApplication,
+  updateAdminUser,
+  updateAppointmentStatus,
+} = require("./adminStore");
 const {
   assertThreadAccess,
   buildChatBootstrap,
@@ -260,6 +269,62 @@ app.get("/api/admin/overview", requireAdmin, async (req, res) => {
   } catch (error) {
     console.error("Admin overview error:", error?.message || error);
     res.status(500).json({ error: "Неуспешно зареждане на admin статистиките." });
+  }
+});
+
+app.get("/api/admin/users", requireAdmin, async (req, res) => {
+  try {
+    res.json({
+      users: await fetchAdminUsers(),
+    });
+  } catch (error) {
+    console.error("Admin users error:", error?.message || error);
+    res.status(500).json({ error: "Неуспешно зареждане на потребителите." });
+  }
+});
+
+app.patch("/api/admin/users/:userId", requireAdmin, async (req, res) => {
+  try {
+    const user = await updateAdminUser(req.params.userId, req.body || {});
+    res.json({ user });
+  } catch (error) {
+    res.status(400).json({ error: error?.message || "Неуспешно обновяване на потребителя." });
+  }
+});
+
+app.get("/api/admin/doctors", requireAdmin, async (req, res) => {
+  try {
+    res.json({
+      applications: await fetchDoctorApplications(),
+    });
+  } catch (error) {
+    console.error("Admin doctors error:", error?.message || error);
+    res.status(500).json({ error: "Неуспешно зареждане на лекарските кандидатури." });
+  }
+});
+
+app.patch("/api/admin/doctors/:userId", requireAdmin, async (req, res) => {
+  try {
+    const application = await reviewDoctorApplication(req.params.userId, req.body || {});
+    res.json({ application });
+  } catch (error) {
+    res.status(400).json({
+      error: error?.message || "Неуспешна обработка на лекарската кандидатура.",
+    });
+  }
+});
+
+app.patch("/api/admin/appointments/:appointmentId", requireAdmin, async (req, res) => {
+  try {
+    const appointment = await updateAppointmentStatus(
+      req.params.appointmentId,
+      req.body?.status
+    );
+    res.json({ appointment });
+  } catch (error) {
+    res.status(400).json({
+      error: error?.message || "Неуспешно обновяване на статуса на записването.",
+    });
   }
 });
 

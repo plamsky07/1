@@ -167,6 +167,259 @@ begin
   end if;
 end $$;
 
+alter table public.profiles
+  add column if not exists email text not null default '',
+  add column if not exists role text not null default 'patient',
+  add column if not exists account_type text not null default 'patient',
+  add column if not exists verification_status text not null default 'active',
+  add column if not exists account_status text not null default 'active',
+  add column if not exists admin_notes text not null default '';
+
+update public.profiles p
+set
+  email = coalesce(nullif(p.email, ''), u.email, ''),
+  role = case
+    when lower(coalesce(u.raw_user_meta_data ->> 'role', '')) = 'admin' then 'admin'
+    when lower(coalesce(u.raw_user_meta_data ->> 'account_type', '')) = 'doctor' then 'doctor'
+    when lower(coalesce(p.role, '')) in ('patient', 'doctor', 'admin') then lower(p.role)
+    else 'patient'
+  end,
+  account_type = case
+    when lower(coalesce(u.raw_user_meta_data ->> 'account_type', '')) = 'doctor' then 'doctor'
+    when lower(coalesce(p.account_type, '')) = 'doctor' then 'doctor'
+    else 'patient'
+  end,
+  verification_status = case
+    when lower(coalesce(u.raw_user_meta_data ->> 'account_type', '')) = 'doctor'
+      then coalesce(nullif(u.raw_user_meta_data ->> 'verification_status', ''), 'pending_review')
+    when lower(coalesce(p.verification_status, '')) in ('active', 'pending_review', 'approved', 'rejected', 'suspended')
+      then lower(p.verification_status)
+    else 'active'
+  end,
+  account_status = case
+    when lower(coalesce(p.account_status, '')) in ('active', 'pending_review', 'blocked')
+      then lower(p.account_status)
+    else 'active'
+  end
+from auth.users u
+where u.id = p.id;
+
+create table if not exists public.doctor_profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  specialty text not null default '',
+  city text not null default '',
+  clinic_name text not null default '',
+  clinic_id text not null default '',
+  license_number text not null default '',
+  years_experience integer not null default 0,
+  bio text not null default '',
+  services jsonb not null default '[]'::jsonb,
+  languages jsonb not null default '[]'::jsonb,
+  online boolean not null default false,
+  certification_confirmed boolean not null default false,
+  verification_status text not null default 'pending_review',
+  is_listed boolean not null default false,
+  admin_notes text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_doctor_profiles_verification_status
+  on public.doctor_profiles(verification_status);
+
+alter table public.doctor_profiles enable row level security;
+
+drop trigger if exists doctor_profiles_set_updated_at on public.doctor_profiles;
+create trigger doctor_profiles_set_updated_at
+before update on public.doctor_profiles
+for each row
+execute function public.set_updated_at_timestamp();
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'doctor_profiles'
+      and policyname = 'Users can read own doctor profile'
+  ) then
+    create policy "Users can read own doctor profile"
+      on public.doctor_profiles
+      for select
+      to authenticated
+      using (auth.uid() = user_id);
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'doctor_profiles'
+      and policyname = 'Users can insert own doctor profile'
+  ) then
+    create policy "Users can insert own doctor profile"
+      on public.doctor_profiles
+      for insert
+      to authenticated
+      with check (auth.uid() = user_id);
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'doctor_profiles'
+      and policyname = 'Users can update own doctor profile'
+  ) then
+    create policy "Users can update own doctor profile"
+      on public.doctor_profiles
+      for update
+      to authenticated
+      using (auth.uid() = user_id)
+      with check (auth.uid() = user_id);
+  end if;
+end $$;
+
+insert into public.doctor_profiles (
+  user_id,
+  specialty,
+  city,
+  clinic_name,
+  clinic_id,
+  license_number,
+  years_experience,
+  bio,
+  services,
+  languages,
+  online,
+  certification_confirmed,
+  verification_status,
+  is_listed,
+  admin_notes
+)
+select
+  u.id,
+  coalesce(u.raw_user_meta_data ->> 'doctor_specialty', ''),
+  coalesce(u.raw_user_meta_data ->> 'doctor_city', ''),
+  coalesce(u.raw_user_meta_data ->> 'doctor_clinic_name', ''),
+  coalesce(u.raw_user_meta_data ->> 'doctor_clinic_id', ''),
+  coalesce(u.raw_user_meta_data ->> 'doctor_license_number', ''),
+  coalesce(nullif(u.raw_user_meta_data ->> 'doctor_years_experience', '')::integer, 0),
+  coalesce(u.raw_user_meta_data ->> 'doctor_bio', ''),
+  coalesce((u.raw_user_meta_data -> 'doctor_services')::jsonb, '[]'::jsonb),
+  coalesce((u.raw_user_meta_data -> 'doctor_languages')::jsonb, '[]'::jsonb),
+  coalesce((u.raw_user_meta_data ->> 'doctor_online')::boolean, false),
+  coalesce((u.raw_user_meta_data ->> 'doctor_certification_confirmed')::boolean, false),
+  coalesce(nullif(u.raw_user_meta_data ->> 'verification_status', ''), 'pending_review'),
+  false,
+  ''
+from auth.users u
+where lower(coalesce(u.raw_user_meta_data ->> 'account_type', '')) = 'doctor'
+on conflict (user_id) do nothing;
+
+create or replace function public.handle_new_user_profile()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  account_type_value text := lower(coalesce(new.raw_user_meta_data ->> 'account_type', 'patient'));
+  role_value text := lower(coalesce(new.raw_user_meta_data ->> 'role', account_type_value));
+  verification_value text := coalesce(
+    nullif(new.raw_user_meta_data ->> 'verification_status', ''),
+    case when account_type_value = 'doctor' then 'pending_review' else 'active' end
+  );
+begin
+  insert into public.profiles (
+    id,
+    email,
+    first_name,
+    last_name,
+    phone,
+    role,
+    account_type,
+    verification_status,
+    account_status
+  )
+  values (
+    new.id,
+    coalesce(new.email, ''),
+    coalesce(new.raw_user_meta_data ->> 'first_name', ''),
+    coalesce(new.raw_user_meta_data ->> 'last_name', ''),
+    coalesce(new.raw_user_meta_data ->> 'phone', ''),
+    case when role_value = 'admin' then 'admin' when account_type_value = 'doctor' then 'doctor' else 'patient' end,
+    case when account_type_value = 'doctor' then 'doctor' else 'patient' end,
+    verification_value,
+    'active'
+  )
+  on conflict (id) do update
+    set email = excluded.email,
+        first_name = excluded.first_name,
+        last_name = excluded.last_name,
+        phone = excluded.phone,
+        role = excluded.role,
+        account_type = excluded.account_type,
+        verification_status = excluded.verification_status;
+
+  if account_type_value = 'doctor' then
+    insert into public.doctor_profiles (
+      user_id,
+      specialty,
+      city,
+      clinic_name,
+      clinic_id,
+      license_number,
+      years_experience,
+      bio,
+      services,
+      languages,
+      online,
+      certification_confirmed,
+      verification_status,
+      is_listed,
+      admin_notes
+    )
+    values (
+      new.id,
+      coalesce(new.raw_user_meta_data ->> 'doctor_specialty', ''),
+      coalesce(new.raw_user_meta_data ->> 'doctor_city', ''),
+      coalesce(new.raw_user_meta_data ->> 'doctor_clinic_name', ''),
+      coalesce(new.raw_user_meta_data ->> 'doctor_clinic_id', ''),
+      coalesce(new.raw_user_meta_data ->> 'doctor_license_number', ''),
+      coalesce(nullif(new.raw_user_meta_data ->> 'doctor_years_experience', '')::integer, 0),
+      coalesce(new.raw_user_meta_data ->> 'doctor_bio', ''),
+      coalesce((new.raw_user_meta_data -> 'doctor_services')::jsonb, '[]'::jsonb),
+      coalesce((new.raw_user_meta_data -> 'doctor_languages')::jsonb, '[]'::jsonb),
+      coalesce((new.raw_user_meta_data ->> 'doctor_online')::boolean, false),
+      coalesce((new.raw_user_meta_data ->> 'doctor_certification_confirmed')::boolean, false),
+      verification_value,
+      false,
+      ''
+    )
+    on conflict (user_id) do update
+      set specialty = excluded.specialty,
+          city = excluded.city,
+          clinic_name = excluded.clinic_name,
+          clinic_id = excluded.clinic_id,
+          license_number = excluded.license_number,
+          years_experience = excluded.years_experience,
+          bio = excluded.bio,
+          services = excluded.services,
+          languages = excluded.languages,
+          online = excluded.online,
+          certification_confirmed = excluded.certification_confirmed,
+          verification_status = excluded.verification_status;
+  end if;
+
+  return new;
+end;
+$$;
+
 create table if not exists public.subscriptions (
   user_id uuid primary key references auth.users(id) on delete cascade,
   plan text not null default 'free',

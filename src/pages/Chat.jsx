@@ -6,6 +6,7 @@ import {
   fetchChatBootstrap,
   updateChatThread,
 } from "../services/chatService";
+import { useToast } from "../context/ToastState";
 import { isAdminUser } from "../utils/userRole";
 import "../styles/Chat.css";
 
@@ -110,6 +111,7 @@ export default function Chat({ authUser }) {
   });
   const socketRef = useRef(null);
   const endRef = useRef(null);
+  const { showError, showSuccess } = useToast();
 
   const activeThread = useMemo(
     () => threads.find((thread) => thread.id === selectedThreadId) || null,
@@ -155,7 +157,9 @@ export default function Chat({ authUser }) {
         });
       } catch (err) {
         if (!cancelled) {
-          setError(err?.message || "Неуспешно зареждане на chat системата.");
+          const text = err?.message || "Неуспешно зареждане на chat системата.";
+          setError(text);
+          showError(text);
         }
       } finally {
         if (!cancelled) {
@@ -169,7 +173,7 @@ export default function Chat({ authUser }) {
     return () => {
       cancelled = true;
     };
-  }, [authUser?.id]);
+  }, [authUser?.id, showError]);
 
   useEffect(() => {
     if (!authUser?.id) return undefined;
@@ -248,8 +252,11 @@ export default function Chat({ authUser }) {
         priority: "normal",
         initialMessage: "",
       });
+      showSuccess("Новата тема беше отворена успешно.", { title: "Chat Desk" });
     } catch (err) {
-      setError(err?.message || "Неуспешно създаване на нова тема.");
+      const text = err?.message || "Неуспешно създаване на нова тема.";
+      setError(text);
+      showError(text);
     } finally {
       setCreating(false);
     }
@@ -281,7 +288,9 @@ export default function Chat({ authUser }) {
       );
       setComposer("");
     } catch (err) {
-      setError(err?.message || "Неуспешно изпращане на съобщение.");
+      const text = err?.message || "Неуспешно изпращане на съобщение.";
+      setError(text);
+      showError(text);
     } finally {
       setSending(false);
     }
@@ -297,8 +306,11 @@ export default function Chat({ authUser }) {
       if (response?.thread) {
         setThreads((prev) => mergeThreads(prev, response.thread));
       }
+      showSuccess("Разговорът беше обновен.", { title: "Chat Desk" });
     } catch (err) {
-      setError(err?.message || "Неуспешно обновяване на thread-а.");
+      const text = err?.message || "Неуспешно обновяване на thread-а.";
+      setError(text);
+      showError(text);
     } finally {
       setUpdatingThread(false);
     }
